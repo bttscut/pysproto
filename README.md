@@ -8,6 +8,10 @@ installation:
 1. python setup.py build
 2. python setup.py install
 
+or pip
+
+sudo pip install git+https://github.com/bttscut/pysproto
+
 - sproto.h, sproto.c, msvcint.h copied from https://github.com/cloudwu/sproto
 - python_sproto.c modified from https://github.com/spin6lock/python-sproto
 - sprotoparser.py copied from https://github.com/tzngit/python_sproto_parser
