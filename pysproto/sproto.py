@@ -4,35 +4,38 @@ __all__ = ["SprotoRpc"]
 
 class Sproto(object):
     def __init__(self, chunk):
-        self.sp = core.sproto_create(chunk)
+        self.sp = core.newproto(chunk)
         self.st = {}
         self.proto = {}
 
     def querytype(self, tagname):
         if not tagname in self.st:
-            self.st[tagname] = core.sproto_type(self.sp, tagname)
+            self.st[tagname] = core.query_type(self.sp, tagname)
         return self.st[tagname]
 
     def protocol(self, protoname):
+        # print "protocol", protoname
         if not protoname in self.proto:
-            self.proto[protoname] = core.sproto_protocol(self.sp, protoname)
+            self.proto[protoname] = core.protocol(self.sp, protoname)
         return self.proto[protoname]
 
     def encode(self, st, data):
+        # print "encode", data
         if isinstance(st, basestring):
             st = self.querytype(st)
-        return core.sproto_encode(st, data)
+        return core.encode(st, data)
 
     def decode(self, st, chunk):
+        # print "decode"
         if isinstance(st, basestring):
             st = self.querytype(st)
-        return core.sproto_decode(st, chunk)
+        return core.decode(st, chunk)
 
     def pack(self, chunk):
-        return core.sproto_pack(chunk)
+        return core.pack(chunk)
 
     def unpack(self, chunk):
-        return core.sproto_unpack(chunk)
+        return core.unpack(chunk)
 
 class SprotoRpc(object):
     def __init__(self, c2s_chunk, s2c_chunk, packagename):
