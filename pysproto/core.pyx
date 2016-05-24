@@ -209,14 +209,14 @@ def newproto(pbin):
     cdef int size = len(pbin)
     cdef char* pb = pbin
     sp = sproto_create(pb, size)
-    printf("sp: %p\n", sp)
+    #printf("sp: %p\n", sp)
     return PyCapsule_New(sp, NULL, <PyCapsule_Destructor>del_sproto)
 
 def query_type(spobj, protoname):
     sp = <sproto*>PyCapsule_GetPointer(spobj, NULL)
-    printf("sp: %p\n", <void*>sp)
+    #printf("sp: %p\n", <void*>sp)
     st = <sproto_type*>spt(sp, protoname)
-    printf("st: %p\n", <void*>st)
+    #printf("st: %p\n", <void*>st)
     return PyCapsule_New(<void*>st, NULL, NULL)
 
 def dump(spobj):
