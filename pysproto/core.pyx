@@ -59,10 +59,17 @@ cdef int _encode(const sproto_arg *args) except SPROTO_CB_ERROR:
     obj = None
     tn = args.tagname
     if args.index > 0:
-        if tn not in data:
-            return SPROTO_CB_NOARRAY
         try:
-            obj = data[args.tagname][args.index-1]
+            c = data[tn]
+        except KeyError:
+            return SPROTO_CB_NOARRAY
+        if args.mainindex >= 0:
+            # c is a dict
+            assert isinstance(c, dict)
+            c = c.values()
+            c.sort()
+        try:
+            obj = c[args.index-1]
         except IndexError:
             return SPROTO_CB_NIL
     else:
@@ -142,10 +149,13 @@ cdef int _decode(const sproto_arg *args) except SPROTO_CB_ERROR:
     # todo check deep
     if args.index != 0:
         if args.tagname not in self_d:
-            l = []
-            self_d[args.tagname] = l
+            if args.mainindex >= 0:
+                c = {}
+            else:
+                c = []
+            self_d[args.tagname] = c
         else:
-            l = self_d[args.tagname]
+            c = self_d[args.tagname]
         if args.index < 0:
             return 0
 
@@ -164,7 +174,16 @@ cdef int _decode(const sproto_arg *args) except SPROTO_CB_ERROR:
             sub_d = {}
             sub.data = <PyObject *>sub_d
             if args.mainindex >= 0:
-                assert False, "todo"
+                sub.mainindex_tag = args.mainindex
+                r = sproto_decode(args.subtype, args.value, args.length, _decode, sub)
+                if r < 0:
+                    return SPROTO_CB_ERROR
+                if r != args.length:
+                    return r
+                if sub.key == NULL:
+                    raise Exception("can't find mainindex (tag=%d) in [%s]a"%(args.mainindex, args.tagname))
+                c[<object>(sub.key)] = sub_d
+                return 0
             else:
                 sub.mainindex_tag = -1
                 r = sproto_decode(args.subtype, args.value, args.length, _decode, sub)
@@ -179,10 +198,10 @@ cdef int _decode(const sproto_arg *args) except SPROTO_CB_ERROR:
         raise Exception("Invalid type")
 
     if args.index > 0:
-        l.append(ret)
+        c.append(ret)
     else:
         if self.mainindex_tag == args.tagid:
-            assert False, "todo"
+            self.key = <PyObject *>ret
         self_d[args.tagname] = ret
     return 0
 
