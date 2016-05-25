@@ -1,5 +1,5 @@
 # pysproto
-python binding for cloudwu's sprotos
+python binding for cloudwu‘s sproto with rpc support
 
 make it one python egg<br>
 installation:
