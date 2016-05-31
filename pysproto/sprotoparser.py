@@ -36,7 +36,34 @@ class Sproto(List):
     grammar = attr("items", maybe_some([Type, Protocol]))
 #====================================================================
 
-_builtin_types = ["string", "integer", "boolean"]
+builtin_types = {"integer":0, "boolean":1, "string":2}
+
+import re as rawre
+def checktype(types, ptype, t):
+    if t in builtin_types:
+        return t
+
+    fullname = "%s.%s" % (ptype, t)
+    if fullname in types:
+        return fullname
+    else:
+        sobj = rawre.search("(.+)%..+$", ptype)
+        if sobj:
+            return checktype(types, sobj.group(0), t)
+        elif t in types:
+            return t
+
+
+def flattypename(r):
+    for typename, t in r["type"].iteritems():
+        for _, f in enumerate(t):
+            ftype = f["typename"]
+            fullname = checktype(r["type"], typename, ftype)
+            assert fullname != None, "Undefined type %s in type %s" % (ftype, typename)
+            f["typename"] = fullname
+            if "array" in f and "key" in f:
+                pass
+
 
 class Convert:
     group = {}
@@ -60,7 +87,11 @@ class Convert:
 
         Convert.group["type"] = Convert.type_dict
         Convert.group["protocol"] = Convert.protocol_dict
+
+        #import json
+        #print(json.dumps(Convert.group, indent=4))
         return Convert.group
+
     @staticmethod
     def convert_type(obj, parent_name = ""):
         if parent_name != "":
@@ -78,18 +109,15 @@ class Convert:
             if type(filed) == Filed:
                 filed_typename = '.'.join(filed.typename.fullname)
                 filed_type = Convert.get_typename(filed_typename)
-                #if not ok:
-                #    print("Error: Undefined type %s in type %s at %s.sproto" % (filed_typename, name, Convert.namespace))
-                #    sys.exit()
                 filed_info = {}
                 filed_info["name"] = filed.filed
-                filed_info["tag"] = filed.tag
+                filed_info["tag"] = int(filed.tag)
                 filed_info["array"] = filed.typename.is_arr
                 filed_info["typename"] = filed_typename
                 filed_info["type"] = filed_type
                 struct.append(filed_info)
             elif type(filed) == Type:
-                Convert.convert_type(filed, name) 
+                Convert.convert_type(filed, name)
         return struct
 
     @staticmethod
@@ -101,36 +129,55 @@ class Convert:
             print("Error:redifine protocol tags %d \n" % (obj.tag))
             return
         protocol = {}
-        protocol["tag"] = obj.tag
+        protocol["tag"] = int(obj.tag)
+        protocol["name"] = obj.name
         for fi in obj.fileds:
-            #if type(fi.pro_filed) == TypeName:
-                #ok = Convert.check_type_exists(fi.pro_filed.fullname)
-                #if not ok:
-                #    protocol[fi.subpro_type] = fi.pro_filed.name
-                #else:
-                #    print("Error:non define typename %s \n" % (fi.pro_filed))
-                #    return
-            if type(fi.pro_filed) == Struct:
+            if type(fi.pro_filed) == TypeName:
+                assert fi.pro_filed.is_arr == False, "syntax error at %s.%s" % (obj.name, fi.subpro_type)
+                newtype_name = str(''.join(fi.pro_filed.fullname))
+                protocol[fi.subpro_type] = newtype_name
+            elif type(fi.pro_filed) == Struct:
                 newtype_name = obj.name + "." + fi.subpro_type
                 Convert.type_dict[newtype_name] = Convert.convert_struct(fi.pro_filed, newtype_name)
                 protocol[fi.subpro_type] = newtype_name
            
         Convert.protocol_dict[obj.name] = protocol
-        Convert.protocol_tags[obj.tag] = obj.tag
+        Convert.protocol_tags[obj.tag] = True
 
     @staticmethod
     def get_typename(name):
-        if name in _builtin_types:
+        if name in builtin_types:
             return "builtin"
         else:
             return "UserDefine"
 
-def dump():
-    print("to do dump")
-    pass
+# ===============================================================
+# export functions
+# ===============================================================
+__all__ = ["parse", "parse_list", "builtin_types"]
 
-__all__ = ["parse"]
-def parse(text, name="=text"):
-    result = Convert.parse(text, name) 
-    return result
+def parse(text, name, check=True):
+    build = Convert.parse(text, name)
+    if check:
+        flattypename(build)
+    return build
 
+def parse_list(sproto_list):
+    build = {"protocol":{}, "type":{}}
+    for v in sproto_list:
+        ast = Convert.parse(v[0], v[1])
+
+        #merge type
+        for stname, stype in ast["type"].iteritems():
+            assert stname not in build["type"], "redifine type %s in %s" % (stname, v[1])
+            build["type"][stname] = stype
+        #merge protocol
+        for spname, sp in ast["protocol"].iteritems():
+            assert spname not in build["protocol"], "redifine protocol name %s in %s" %  (spname, v[1])
+            for proto in build["protocol"]:
+                assert sp["tag"] != build["protocol"][proto]["tag"], "redifine protocol tag %d in %s with %s" % (sp["tag"], proto, spname)
+            build["protocol"][spname] = sp
+
+    flattypename(build)
+    # checkprotocol(build)
+    return build
