@@ -160,7 +160,7 @@ if __name__ == "__main__":
 
         build = sprotoparser.parse_list(sproto_list)
 
-    if args.verbose == True
+    if args.verbose == True:
         import json
         print(json.dumps(build, indent=4))
     dump(build, args.outfile)
