@@ -44,6 +44,12 @@ from libc.string cimport memcpy
 from cpython.mem cimport PyMem_Malloc, PyMem_Free, PyMem_Realloc
 from cpython.object cimport PyObject
 
+cdef extern from "compat.h":
+    ctypedef void (*capsule_dest)(PyObject *)
+    object make_capsule(void *, const char *, capsule_dest)
+    void* get_pointer(object, const char*)
+
+
 cdef enum:
     prealloc = 2050
     max_deeplevel = 64
@@ -113,14 +119,10 @@ cdef int _encode(const sproto_arg *args) except SPROTO_CB_ERROR:
     raise Exception("Invalid field type %d"%args.type)
     return -1
 
-cdef del_sproto(object obj):
-    sp = <sproto*>PyCapsule_GetPointer(obj, NULL)
-    sproto_release(sp)
-
 def encode(stobj, data):
     assert isinstance(data, dict)
     cdef encode_ud self
-    cdef sproto_type *st = <sproto_type*>PyCapsule_GetPointer(stobj, NULL)
+    cdef sproto_type *st = <sproto_type*>get_pointer(stobj, NULL)
     cdef char* buf = <char*>PyMem_Malloc(prealloc)
     cdef int sz = prealloc
     try:
@@ -206,7 +208,7 @@ cdef int _decode(const sproto_arg *args) except SPROTO_CB_ERROR:
     return 0
 
 def decode(stobj, data):
-    cdef sproto_type *st = <sproto_type*>PyCapsule_GetPointer(stobj, NULL)
+    cdef sproto_type *st = <sproto_type*>get_pointer(stobj, NULL)
     cdef char *buf = data
     cdef int size = len(data)
     cdef decode_ud self
@@ -222,28 +224,32 @@ def decode(stobj, data):
 cdef object __wrap_st(sproto_type *st):
     if st == NULL:
         return None
-    return PyCapsule_New(st, NULL, NULL)
+    return make_capsule(st, NULL, NULL)
+
+cdef void del_sproto(PyObject *obj):
+    sp = <sproto*>get_pointer(<object>obj, NULL)
+    sproto_release(sp)
 
 def newproto(pbin):
     cdef int size = len(pbin)
     cdef char* pb = pbin
     sp = sproto_create(pb, size)
     #printf("sp: %p\n", sp)
-    return PyCapsule_New(sp, NULL, <PyCapsule_Destructor>del_sproto)
+    return make_capsule(sp, NULL, del_sproto)
 
 def query_type(spobj, protoname):
-    sp = <sproto*>PyCapsule_GetPointer(spobj, NULL)
+    sp = <sproto*>get_pointer(spobj, NULL)
     #printf("sp: %p\n", <void*>sp)
     st = <sproto_type*>spt(sp, protoname)
     #printf("st: %p\n", <void*>st)
-    return PyCapsule_New(<void*>st, NULL, NULL)
+    return make_capsule(<void*>st, NULL, NULL)
 
 def dump(spobj):
-    sp = <sproto*>PyCapsule_GetPointer(spobj, NULL)
+    sp = <sproto*>get_pointer(spobj, NULL)
     sproto_dump(sp)
 
 def protocol(spobj, name_or_tag):
-    sp = <sproto*>PyCapsule_GetPointer(spobj, NULL)
+    sp = <sproto*>get_pointer(spobj, NULL)
     ret = None
     if isinstance(name_or_tag, int):
         tag = name_or_tag
