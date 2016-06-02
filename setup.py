@@ -1,4 +1,4 @@
-from distutils.core import setup, Extension
+from setuptools import setup, Extension
 
 # core = Extension('pysproto.core',
         # sources = ["pysproto/python_sproto.c", "pysproto/sproto.c"],
