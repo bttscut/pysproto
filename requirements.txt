@@ -1,1 +1,2 @@
-Cython==0.24
+setuptools>=20
+Cython>=0.24

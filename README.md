@@ -10,7 +10,7 @@ installation:
 
 or pip
 
- sudo pip install 'cython==0.24' git+git://github.com/bttscut/pysproto.git#egg=pysproto 
+ sudo pip install 'setuptools>=20' 'cython>=0.24' git+git://github.com/bttscut/pysproto.git#egg=pysproto 
 
 - sproto.h, sproto.c, msvcint.h copied from https://github.com/cloudwu/sproto
 - sprotoparser.py copied from https://github.com/tzngit/python_sproto_parser
