@@ -33,7 +33,7 @@ cdef extern from "sproto.h":
     const char * sproto_protoname(const sproto *, int proto)
     sproto_type * sproto_protoquery(const sproto *, int proto, int what)
     void sproto_dump(sproto*)
-    ctypedef int (*sproto_callback)(const sproto_arg *args) except SPROTO_CB_ERROR
+    ctypedef int (*sproto_callback)(const sproto_arg *args) except *
     int sproto_encode(const sproto_type *, void * buffer, int size, sproto_callback cb, void *ud)
     int sproto_decode(const sproto_type *, const void * data, int size, sproto_callback cb, void *ud)
 
@@ -43,6 +43,7 @@ from libc.stdio cimport printf
 from libc.string cimport memcpy
 from cpython.mem cimport PyMem_Malloc, PyMem_Free, PyMem_Realloc
 from cpython.object cimport PyObject
+from cpython.exc cimport PyErr_Occurred, PyErr_Print
 
 cdef extern from "compat.h":
     ctypedef void (*capsule_dest)(PyObject *)
@@ -58,7 +59,7 @@ cdef struct encode_ud:
     PyObject *data
     int deep
 
-cdef int _encode(const sproto_arg *args) except SPROTO_CB_ERROR:
+cdef int _encode(const sproto_arg *args) except *:
     cdef encode_ud *self = <encode_ud*>args.ud
     # todo check deep
     data = <object>self.data
@@ -130,6 +131,9 @@ def encode(stobj, data):
             self.data = <PyObject*>data
             self.deep = 0
             r = sproto_encode(st, buf, sz, _encode, &self)
+            if PyErr_Occurred():
+                PyErr_Print()
+                raise Exception("encode error")
             if r < 0:
                 sz = sz*2
                 buf = <char*>PyMem_Realloc(buf, sz)
@@ -145,7 +149,7 @@ cdef struct decode_ud:
     int deep
     int mainindex_tag
 
-cdef int _decode(const sproto_arg *args) except SPROTO_CB_ERROR:
+cdef int _decode(const sproto_arg *args) except *:
     cdef decode_ud *self = <decode_ud *>args.ud
     self_d = <dict>self.data
     # todo check deep
@@ -217,6 +221,9 @@ def decode(stobj, data):
     self.deep = 0
     self.mainindex_tag = -1
     r = sproto_decode(st, buf, size, _decode, &self)
+    if PyErr_Occurred():
+        PyErr_Print()
+        raise Exception("decode error")
     if r < 0:
         raise Exception("decode error")
     return d, r
