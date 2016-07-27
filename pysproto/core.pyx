@@ -80,9 +80,9 @@ cdef int _encode(const sproto_arg *args) except *:
         except IndexError:
             return SPROTO_CB_NIL
     else:
-        if tn not in data:
+        obj = data.get(tn)
+        if not obj:
             return SPROTO_CB_NIL
-        obj = data[tn]
     cdef int64_t v, vh
     cdef char* ptr
     cdef encode_ud *sub

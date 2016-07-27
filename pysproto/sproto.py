@@ -63,10 +63,10 @@ class SprotoRpc(object):
         ret["header"] = header
         return ret
             
-    def request(self, protoname, args = None, session = 0):
+    def request(self, protoname, args = None, session = 0, ud = None):
         sp = self._sp
         tag, req, resp = sp.protocol(protoname)
-        header = sp.encode(self._package, {"type":tag, "session":session})
+        header = sp.encode(self._package, {"type":tag, "session":session, "ud":ud})
         if session and not resp:
             raise ValueError("proto no response")
         if session:
