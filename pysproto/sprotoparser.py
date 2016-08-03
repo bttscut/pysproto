@@ -5,7 +5,7 @@ from pypeg2 import *
 pypeg2_parse = parse #rename it,for avoiding name conflict
 tag = re.compile(r"\d+")
 nomeaning = blank, maybe_some(comment_sh), blank
-fullname = optional(word, "."), word
+fullname = re.compile(r"[\w+\.]*\w+")
 
 class MainKey(str):
     grammar = "(", word, ")"
@@ -107,7 +107,7 @@ class Convert:
         struct = []
         for filed in obj.fileds:
             if type(filed) == Filed:
-                filed_typename = '.'.join(filed.typename.fullname)
+                filed_typename = filed.typename.fullname
                 filed_type = Convert.get_typename(filed_typename)
                 filed_info = {}
                 filed_info["name"] = filed.filed
