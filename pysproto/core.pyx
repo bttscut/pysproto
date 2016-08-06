@@ -81,7 +81,7 @@ cdef int _encode(const sproto_arg *args) except *:
             return SPROTO_CB_NIL
     else:
         obj = data.get(tn)
-        if not obj:
+        if obj == None:
             return SPROTO_CB_NIL
     cdef int64_t v, vh
     cdef char* ptr
