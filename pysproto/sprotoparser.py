@@ -47,9 +47,9 @@ def checktype(types, ptype, t):
     if fullname in types:
         return fullname
     else:
-        sobj = rawre.search("(.+)%..+$", ptype)
+        sobj = rawre.search("(.+)\..+$", ptype)
         if sobj:
-            return checktype(types, sobj.group(0), t)
+            return checktype(types, sobj.group(1), t)
         elif t in types:
             return t
 
