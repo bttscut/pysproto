@@ -23,6 +23,7 @@ cdef extern from "sproto.h":
         int length
         int index
         int mainindex
+        int extra
 
     sproto* sproto_create(void *, size_t)
     void sproto_release(sproto*)
@@ -84,10 +85,15 @@ cdef int _encode(const sproto_arg *args) except *:
         if obj == None:
             return SPROTO_CB_NIL
     cdef int64_t v, vh
+    cdef double vn
     cdef char* ptr
     cdef encode_ud *sub
     if args.type == SPROTO_TINTEGER:
-        v = obj
+        if args.extra:
+            vn = obj
+            v = int(vn*args.extra+0.5)
+        else:
+            v = obj
         vh = v >> 31
         if vh == 0 or vh == -1:
             (<int32_t *>args.value)[0] = <int32_t>v;
@@ -118,7 +124,6 @@ cdef int _encode(const sproto_arg *args) except *:
         finally:
             PyMem_Free(sub)
     raise Exception("Invalid field type %d"%args.type)
-    return -1
 
 def encode(stobj, data):
     assert isinstance(data, dict)
@@ -168,7 +173,11 @@ cdef int _decode(const sproto_arg *args) except *:
     ret = None 
     cdef decode_ud *sub
     if args.type == SPROTO_TINTEGER:
-        ret = (<int64_t *>args.value)[0]
+        if args.extra:
+            ret = (<int64_t *>args.value)[0]
+            ret = <double>ret/args.extra
+        else:
+            ret = (<int64_t *>args.value)[0]
     elif args.type == SPROTO_TBOOLEAN:
         ret = True if (<int64_t *>args.value)[0] > 0 else False
     elif args.type == SPROTO_TSTRING:
