@@ -33,6 +33,7 @@ cdef extern from "sproto.h":
     int sproto_prototag(const sproto *, const char * name)
     const char * sproto_protoname(const sproto *, int proto)
     sproto_type * sproto_protoquery(const sproto *, int proto, int what)
+    int sproto_protoresponse(const sproto*, int)
     void sproto_dump(sproto*)
     ctypedef int (*sproto_callback)(const sproto_arg *args) except *
     int sproto_encode(const sproto_type *, void * buffer, int size, sproto_callback cb, void *ud)
@@ -55,6 +56,8 @@ cdef extern from "compat.h":
 cdef enum:
     prealloc = 2050
     max_deeplevel = 64
+
+cdef void *invalid_ptr = <void*>(-1)
 
 cdef struct encode_ud:
     PyObject *data
@@ -129,6 +132,8 @@ def encode(stobj, data):
     assert isinstance(data, dict)
     cdef encode_ud self
     cdef sproto_type *st = <sproto_type*>get_pointer(stobj, NULL)
+    if st == invalid_ptr:
+        return ""
     cdef char* buf = <char*>PyMem_Malloc(prealloc)
     cdef int sz = prealloc
     try:
@@ -222,6 +227,8 @@ cdef int _decode(const sproto_arg *args) except *:
 
 def decode(stobj, data):
     cdef sproto_type *st = <sproto_type*>get_pointer(stobj, NULL)
+    if st == invalid_ptr:
+        return None, 0
     cdef char *buf = data
     cdef int size = len(data)
     cdef decode_ud self
@@ -237,7 +244,7 @@ def decode(stobj, data):
         raise Exception("decode error")
     return d, r
 
-cdef object __wrap_st(sproto_type *st):
+cdef object __wrap_st(void *st):
     if st == NULL:
         return None
     return make_capsule(st, NULL, NULL)
@@ -282,6 +289,8 @@ def protocol(spobj, name_or_tag):
         
     req = sproto_protoquery(sp, tag, SPROTO_REQUEST)
     rsp = sproto_protoquery(sp, tag, SPROTO_RESPONSE)
+    if rsp == NULL and sproto_protoresponse(sp, tag):
+        rsp = invalid_ptr
     return ret, __wrap_st(req), __wrap_st(rsp)
 
 def pack(data):
