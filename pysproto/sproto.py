@@ -47,7 +47,7 @@ class SprotoRpc(object):
         if header.get("type", 0):
             # request
             protoname, req, resp = sp.protocol(header["type"])
-            result,_ = sp.decode(req, content) if req else None, 0
+            result,_ = sp.decode(req, content) if req else (None, 0)
             ret = {"type":"REQUEST", "proto": protoname, "msg":result, "session":None}
             if header.get("session", 0):
                 ret["session"] = header["session"]
