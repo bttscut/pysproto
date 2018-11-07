@@ -13,7 +13,7 @@ core = cythonize(ext)
 
 setup(
         name = "pysproto",
-        version = '0.5',
+        version = '0.6',
         packages = ["pysproto"],
         description = "python binding for cloudwu's sproto",
         author = "bttscut",

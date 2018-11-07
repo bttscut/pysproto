@@ -39,6 +39,13 @@ class SprotoRpc(object):
         self._package = self._sp.query_type(packagename)
         self._session = {}
 
+    def _gen_response_f(self, resp, session):
+        def f(args, ud):
+            header = self._sp.encode(self._package, {"type":0, "session":session, "ud":ud})
+            content = self._sp.encode(resp, args)
+            return self._sp.pack(header+content)
+        return f
+
     def dispatch(self, data):
         sp = self._sp
         data = sp.unpack(data)
@@ -49,8 +56,9 @@ class SprotoRpc(object):
             protoname, req, resp = sp.protocol(header["type"])
             result,_ = sp.decode(req, content) if req else (None, 0)
             ret = {"type":"REQUEST", "proto": protoname, "msg":result, "session":None}
-            if header.get("session", 0):
-                ret["session"] = header["session"]
+            session = header.get("session")
+            if session:
+                ret["response"] = self._gen_response_f(resp, session)
         else:
             # response
             session = header["session"]
